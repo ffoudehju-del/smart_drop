@@ -1,0 +1,49 @@
+
+async function predict() {
+
+    const prediction = await model.predict(webcam.canvas);
+
+    let bestIndex = 0;
+
+    for (let i = 0; i < maxPredictions; i++) {
+
+        if (prediction[i].probability >
+            prediction[bestIndex].probability) {
+            bestIndex = i;
+        }
+
+        const percentage =
+            (prediction[i].probability * 100).toFixed(1);
+
+        const item = labelContainer.children[i];
+
+        item.querySelector(".class-name").textContent =
+            prediction[i].className;
+
+        item.querySelector(".percentage").textContent =
+            percentage + "%";
+
+        item.querySelector(".fill").style.width =
+            percentage + "%";
+    }
+
+    const best = prediction[bestIndex];
+
+    const confidence = best.probability * 100;
+
+    const result = document.getElementById("main-result");
+
+    result.textContent =
+        best.className + " - " + confidence.toFixed(1) + "%";
+
+    // تغيير لون النتيجة حسب الفئة
+    if (best.className === "منخفض العكورة") {
+        result.style.color = "#16A34A";
+
+    } else if (best.className === "متوسط العكورة") {
+        result.style.color = "#D69E16";
+
+    } else if (best.className === "مرتفع العكورة") {
+        result.style.color = "#DC2626";
+    }
+}
