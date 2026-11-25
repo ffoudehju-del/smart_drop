@@ -1,150 +1,165 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>قطرة ذكية | Smart Drop</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>قطرة ذكية | Smart Drop</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
-  <style>
-    * { box-sizing: border-box; }
+<style>
+* {
+  box-sizing: border-box;
+}
 
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f1f8f7;
-      color: #173b43;
-      text-align: center;
-    }
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f1f8f7;
+  color: #173b43;
+  text-align: center;
+}
 
-    header {
-      background: linear-gradient(135deg, #075b63, #159b91);
-      color: white;
-      padding: 28px 15px;
-    }
+header {
+  background: linear-gradient(135deg,#075b63,#159b91);
+  color: white;
+  padding: 28px 15px;
+}
 
-    header h1 { margin: 0 0 8px; font-size: 32px; }
-    header p { margin: 0; font-size: 16px; }
+header h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+}
 
-    main {
-      width: 92%;
-      max-width: 850px;
-      margin: 25px auto;
-    }
+header p {
+  margin: 0;
+}
 
-    .card {
-      background: white;
-      border-radius: 18px;
-      padding: 20px;
-      margin-bottom: 18px;
-      box-shadow: 0 4px 15px #173b4312;
-    }
+main {
+  width: 92%;
+  max-width: 850px;
+  margin: 25px auto;
+}
 
-    h2 { color: #087c7c; margin-top: 0; }
+.card {
+  background: white;
+  border-radius: 18px;
+  padding: 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 4px 15px #173b4312;
+}
 
-    #camera {
-      width: 100%;
-      max-width: 360px;
-      margin: 12px auto;
-      overflow: hidden;
-      border-radius: 14px;
-      background: #e7eeee;
-      min-height: 40px;
-    }
+h2 {
+  color: #087c7c;
+  margin-top: 0;
+}
 
-    #camera canvas {
-      width: 100% !important;
-      height: auto !important;
-      display: block;
-    }
+#video {
+  width: 100%;
+  max-width: 360px;
+  background: #e7eeee;
+  border-radius: 14px;
+  margin: 12px auto;
+  display: block;
+  transform: scaleX(-1);
+}
 
-    button {
-      border: 0;
-      border-radius: 10px;
-      padding: 13px 19px;
-      margin: 6px;
-      font-size: 15px;
-      font-weight: bold;
-      cursor: pointer;
-      color: white;
-      background: #087f83;
-    }
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 13px 19px;
+  margin: 6px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  color: white;
+  background: #087f83;
+}
 
-    button:disabled {
-      opacity: .45;
-      cursor: not-allowed;
-    }
+button:disabled {
+  opacity: .45;
+}
 
-    .stop { background: #697d80; }
-    .before { background: #e18b37; }
-    .after { background: #168c68; }
-    .reset { background: #b84b4b; }
+.stop {
+  background: #697d80;
+}
 
-    #status {
-      color: #60777a;
-      font-size: 14px;
-      margin: 12px;
-      line-height: 1.7;
-    }
+.before {
+  background: #e18b37;
+}
 
-    .result {
-      text-align: right;
-      margin: 15px 0;
-    }
+.after {
+  background: #168c68;
+}
 
-    .result-title {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 6px;
-      font-weight: bold;
-    }
+.reset {
+  background: #b84b4b;
+}
 
-    .bar {
-      height: 14px;
-      background: #e4eeee;
-      border-radius: 20px;
-      overflow: hidden;
-    }
+#status {
+  color: #60777a;
+  font-size: 14px;
+  line-height: 1.8;
+  margin: 12px;
+  overflow-wrap: anywhere;
+}
 
-    .fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #21aaa0, #087c7c);
-      border-radius: 20px;
-      transition: width .3s;
-    }
+.result {
+  text-align: right;
+  margin: 15px 0;
+}
 
-    .sample {
-      background: #f5faf9;
-      padding: 15px;
-      border-radius: 12px;
-      margin: 10px 0;
-      text-align: right;
-      line-height: 1.9;
-    }
+.result-title {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-weight: bold;
+  gap: 10px;
+}
 
-    .comparison {
-      font-size: 19px;
-      font-weight: bold;
-      color: #087c7c;
-      margin: 15px 0;
-    }
+.bar {
+  height: 14px;
+  background: #e4eeee;
+  border-radius: 20px;
+  overflow: hidden;
+}
 
-    .note {
-      font-size: 13px;
-      color: #687c80;
-      line-height: 1.8;
-    }
+.fill {
+  height: 100%;
+  background: linear-gradient(90deg,#21aaa0,#087c7c);
+  border-radius: 20px;
+  transition: width .3s;
+}
 
-    footer {
-      padding: 20px;
-      color: #668084;
-      font-size: 13px;
-    }
-  </style>
+.sample {
+  background: #f5faf9;
+  padding: 15px;
+  border-radius: 12px;
+  margin: 10px 0;
+  text-align: right;
+  line-height: 1.9;
+}
+
+.comparison {
+  font-size: 18px;
+  font-weight: bold;
+  color: #087c7c;
+  margin: 15px 0;
+}
+
+.note {
+  font-size: 13px;
+  color: #687c80;
+  line-height: 1.9;
+}
+
+footer {
+  padding: 20px;
+  color: #668084;
+  font-size: 13px;
+}
+</style>
 </head>
 
 <body>
@@ -156,70 +171,82 @@
 
 <main>
 
-  <section class="card">
-    <h2>🔬 فحص عينة المياه</h2>
-    <p>وجّهي الكاميرا نحو عينة الماء للحصول على التصنيف البصري.</p>
+<section class="card">
+  <h2>🔬 فحص عينة المياه</h2>
 
-    <div id="camera"></div>
+  <p>وجّهي الكاميرا نحو عينة الماء للحصول على التصنيف البصري.</p>
 
-    <div>
-      <button id="startBtn" onclick="startCamera()">تشغيل الكاميرا</button>
-      <button id="stopBtn" class="stop" onclick="stopCamera()" disabled>إيقاف الكاميرا</button>
-    </div>
+  <video id="video" autoplay playsinline muted></video>
 
-    <p id="status">يرجى تشغيل الكاميرا لبدء الفحص.</p>
-  </section>
+  <button id="startBtn" onclick="startCamera()">
+    تشغيل الكاميرا
+  </button>
 
-  <section class="card">
-    <h2>📊 نتائج تحليل الذكاء الاصطناعي</h2>
-    <div id="predictions">
-      ستظهر نتائج التصنيف هنا بعد تشغيل الكاميرا.
-    </div>
-  </section>
+  <button id="stopBtn" class="stop" onclick="stopCamera()" disabled>
+    إيقاف الكاميرا
+  </button>
 
-  <section class="card">
-    <h2>🧪 مقارنة العينات</h2>
-    <p>احفظي نتيجة العينة قبل التنقية، ثم أعيدي الفحص بعد التنقية.</p>
+  <p id="status">اضغطي تشغيل الكاميرا لبدء الفحص.</p>
+</section>
 
-    <button class="before" onclick="saveSample('before')">
-      حفظ عينة قبل التنقية
-    </button>
+<section class="card">
+  <h2>📊 نتائج تحليل الذكاء الاصطناعي</h2>
 
-    <button class="after" onclick="saveSample('after')">
-      حفظ عينة بعد التنقية
-    </button>
+  <div id="predictions">
+    ستظهر نتائج التصنيف هنا.
+  </div>
+</section>
 
-    <div class="sample">
-      <strong>العينة قبل التنقية:</strong>
-      <div id="beforeResult">لم يتم حفظ عينة بعد.</div>
-    </div>
+<section class="card">
+  <h2>🧪 مقارنة العينات</h2>
 
-    <div class="sample">
-      <strong>العينة بعد التنقية:</strong>
-      <div id="afterResult">لم يتم حفظ عينة بعد.</div>
-    </div>
+  <p>
+    احفظي نتيجة العينة قبل التنقية، ثم أعيدي الفحص بعد التنقية.
+  </p>
 
-    <div class="comparison" id="comparison">
-      بانتظار حفظ العينتين للمقارنة.
-    </div>
+  <button class="before" onclick="saveSample('before')">
+    حفظ عينة قبل التنقية
+  </button>
 
-    <button class="reset" onclick="resetSamples()">إعادة ضبط المقارنة</button>
-  </section>
+  <button class="after" onclick="saveSample('after')">
+    حفظ عينة بعد التنقية
+  </button>
 
-  <section class="card">
-    <h2>💡 كيف تعمل قطرة ذكية؟</h2>
-    <p class="note">
-      تستخدم المنظومة نموذجاً مدرّباً بالذكاء الاصطناعي لتحليل الصورة
-      وتصنيف مظهر عينة الماء ضمن الفئات التي تم تدريب النموذج عليها.
-      تتم مقارنة نتائج العينة قبل التنقية وبعدها لمعرفة التغير في
-      التصنيف البصري.
-    </p>
-    <p class="note">
-      تنبيه علمي: هذه المنظومة تقدم تصنيفاً بصرياً فقط، ولا تقيس العكورة
-      بوحدة NTU، ولا تقيس المواد الصلبة الذائبة TDS، ولا تثبت أن الماء
-      صالح للشرب أو خالٍ من الملوثات الكيميائية أو الميكروبية.
-    </p>
-  </section>
+  <div class="sample">
+    <strong>العينة قبل التنقية:</strong>
+    <div id="beforeResult">لم يتم حفظ عينة بعد.</div>
+  </div>
+
+  <div class="sample">
+    <strong>العينة بعد التنقية:</strong>
+    <div id="afterResult">لم يتم حفظ عينة بعد.</div>
+  </div>
+
+  <div class="comparison" id="comparison">
+    بانتظار حفظ العينتين للمقارنة.
+  </div>
+
+  <button class="reset" onclick="resetSamples()">
+    إعادة ضبط المقارنة
+  </button>
+</section>
+
+<section class="card">
+  <h2>💡 كيف تعمل قطرة ذكية؟</h2>
+
+  <p class="note">
+    تستخدم المنظومة نموذجاً مدرباً بالذكاء الاصطناعي لتحليل الصورة
+    وتصنيف مظهر عينة الماء ضمن الفئات التي تدرب عليها النموذج.
+    تتم مقارنة نتائج العينة قبل التنقية وبعدها لمعرفة التغير
+    في التصنيف البصري.
+  </p>
+
+  <p class="note">
+    تنبيه علمي: التصنيف بصري فقط، ولا يمثل قياساً للعكورة بوحدة NTU،
+    ولا يقيس المواد الصلبة الذائبة TDS، ولا يثبت صلاحية الماء للشرب
+    أو خلوه من الملوثات الكيميائية أو الميكروبية.
+  </p>
+</section>
 
 </main>
 
@@ -230,75 +257,143 @@
 </footer>
 
 <script>
-  const URL = "./my_model/";
 
-  let model;
-  let webcam;
-  let running = false;
-  let animationId = null;
-  let latestPredictions = [];
-  let beforeSample = null;
-  let afterSample = null;
+const MODEL_URL = "./my_model/";
 
-  const camera = document.getElementById("camera");
-  const statusText = document.getElementById("status");
-  const predictionsBox = document.getElementById("predictions");
+let model = null;
+let stream = null;
+let running = false;
+let animationId = null;
+let latestPredictions = [];
+let beforeSample = null;
+let afterSample = null;
+let busy = false;
 
-  async function startCamera() {
-    if (running) return;
+const video = document.getElementById("video");
+const statusText = document.getElementById("status");
+const predictionsBox = document.getElementById("predictions");
 
-    try {
-      statusText.textContent = "جارٍ تحميل نموذج الذكاء الاصطناعي...";
+function showError(message) {
+  statusText.textContent = "حدث خطأ: " + message;
+  console.error(message);
+}
 
-      if (!model) {
-        model = await tmImage.load(
-          URL + "model.json",
-          URL + "metadata.json"
-        );
-      }
+async function loadModel() {
 
-      webcam = new tmImage.Webcam(320, 320, true);
+  if (model) return;
 
-      statusText.textContent = "يرجى السماح باستخدام الكاميرا.";
-
-      await webcam.setup();
-      await webcam.play();
-
-      camera.innerHTML = "";
-      camera.appendChild(webcam.canvas);
-
-      running = true;
-
-      document.getElementById("startBtn").disabled = true;
-      document.getElementById("stopBtn").disabled = false;
-
-      statusText.textContent = "الكاميرا تعمل الآن. وجّهيها نحو عينة الماء.";
-
-      loop();
-
-    } catch (error) {
-      console.error(error);
-      statusText.textContent =
-        "تعذر تشغيل الكاميرا أو تحميل النموذج. تأكدي من السماح بالكاميرا ومن وجود ملفات النموذج داخل مجلد my_model.";
-    }
+  if (typeof tmImage === "undefined") {
+    throw new Error(
+      "لم يتم تحميل مكتبة Teachable Machine. تحققي من اتصال الإنترنت."
+    );
   }
 
-  async function loop() {
-    if (!running) return;
+  statusText.textContent = "جارٍ تحميل نموذج الذكاء الاصطناعي...";
 
-    webcam.update();
-    await predict();
+  model = await tmImage.load(
+    MODEL_URL + "model.json",
+    MODEL_URL + "metadata.json"
+  );
+}
 
-    if (running) {
-      animationId = requestAnimationFrame(loop);
-    }
+async function openCamera() {
+
+  if (!navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia) {
+    throw new Error(
+      "المتصفح لا يدعم تشغيل الكاميرا. افتحي الموقع في Safari مباشرة عبر HTTPS."
+    );
   }
 
-  async function predict() {
-    if (!model || !webcam) return;
+  statusText.textContent = "جارٍ طلب إذن تشغيل الكاميرا...";
+
+  const constraints = {
+    audio: false,
+    video: {
+      facingMode: { ideal: "environment" },
+      width: { ideal: 640 },
+      height: { ideal: 640 }
+    }
+  };
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+  } catch (firstError) {
+
+    console.warn("محاولة الكاميرا الخلفية لم تنجح:", firstError);
+
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: true
+    });
+  }
+
+  video.srcObject = stream;
+  video.muted = true;
+  video.playsInline = true;
+
+  await video.play();
+}
+
+async function startCamera() {
+
+  if (running) return;
+
+  document.getElementById("startBtn").disabled = true;
+
+  try {
+
+    await loadModel();
+
+  } catch (error) {
+
+    document.getElementById("startBtn").disabled = false;
+
+    showError(
+      "فشل تحميل النموذج: " +
+      (error.message || String(error))
+    );
+
+    return;
+  }
+
+  try {
+
+    await openCamera();
+
+  } catch (error) {
+
+    document.getElementById("startBtn").disabled = false;
+
+    showError(
+      "فشل تشغيل الكاميرا: " +
+      (error.message || String(error))
+    );
+
+    return;
+  }
+
+  running = true;
+
+  document.getElementById("stopBtn").disabled = false;
+
+  statusText.textContent =
+    "الكاميرا تعمل بنجاح. جارٍ تحليل عينة الماء...";
+
+  loop();
+}
+
+async function loop() {
+
+  if (!running || busy) return;
+
+  if (video.readyState >= 2) {
+
+    busy = true;
 
     try {
-      const predictions = await model.predict(webcam.canvas);
+
+      const predictions = await model.predict(video);
 
       latestPredictions = predictions.map(p => ({
         className: p.className,
@@ -306,174 +401,197 @@
       }));
 
       latestPredictions.sort(
-        (a, b) => b.probability - a.probability
+        (a,b) => b.probability - a.probability
       );
 
       displayPredictions();
 
     } catch (error) {
-      console.error(error);
-      statusText.textContent = "حدث خطأ أثناء تحليل الصورة.";
-    }
-  }
 
-  function displayPredictions() {
-    if (!latestPredictions.length) return;
+      showError(
+        "فشل تحليل الصورة: " +
+        (error.message || String(error))
+      );
 
-    predictionsBox.innerHTML = "";
-
-    latestPredictions.forEach(item => {
-      const percentage = (item.probability * 100).toFixed(1);
-
-      const result = document.createElement("div");
-      result.className = "result";
-
-      const title = document.createElement("div");
-      title.className = "result-title";
-
-      const name = document.createElement("span");
-      name.textContent = item.className;
-
-      const value = document.createElement("span");
-      value.textContent = percentage + "%";
-
-      title.appendChild(name);
-      title.appendChild(value);
-
-      const bar = document.createElement("div");
-      bar.className = "bar";
-
-      const fill = document.createElement("div");
-      fill.className = "fill";
-      fill.style.width = percentage + "%";
-
-      bar.appendChild(fill);
-      result.appendChild(title);
-      result.appendChild(bar);
-
-      predictionsBox.appendChild(result);
-    });
-  }
-
-  function stopCamera() {
-    running = false;
-
-    if (animationId !== null) {
-      cancelAnimationFrame(animationId);
-      animationId = null;
-    }
-
-    if (webcam) {
-      webcam.stop();
-      webcam = null;
-    }
-
-    camera.innerHTML = "";
-
-    document.getElementById("startBtn").disabled = false;
-    document.getElementById("stopBtn").disabled = true;
-
-    statusText.textContent = "تم إيقاف الكاميرا.";
-  }
-
-  function saveSample(type) {
-    if (!latestPredictions.length) {
-      alert("يرجى تشغيل الكاميرا وانتظار ظهور نتيجة التحليل أولاً.");
+      stopCamera();
       return;
-    }
 
-    const top = latestPredictions[0];
-
-    const sample = {
-      className: top.className,
-      probability: top.probability
-    };
-
-    if (type === "before") {
-      beforeSample = sample;
-
-      document.getElementById("beforeResult").textContent =
-        sample.className + " — ثقة النموذج: " +
-        (sample.probability * 100).toFixed(1) + "%";
-
-    } else {
-      afterSample = sample;
-
-      document.getElementById("afterResult").textContent =
-        sample.className + " — ثقة النموذج: " +
-        (sample.probability * 100).toFixed(1) + "%";
-    }
-
-    compareSamples();
-  }
-
-  function getRank(className) {
-    const name = className.toLowerCase().trim();
-
-    if (
-      name.includes("منخفض") ||
-      name.includes("قليل") ||
-      name.includes("low")
-    ) return 1;
-
-    if (
-      name.includes("متوسط") ||
-      name.includes("medium") ||
-      name.includes("moderate")
-    ) return 2;
-
-    if (
-      name.includes("مرتفع") ||
-      name.includes("عالي") ||
-      name.includes("high")
-    ) return 3;
-
-    return null;
-  }
-
-  function compareSamples() {
-    if (!beforeSample || !afterSample) {
-      document.getElementById("comparison").textContent =
-        "تم حفظ عينة واحدة. احفظي العينة الأخرى لإتمام المقارنة.";
-      return;
-    }
-
-    const beforeRank = getRank(beforeSample.className);
-    const afterRank = getRank(afterSample.className);
-
-    const result = document.getElementById("comparison");
-
-    if (beforeRank === null || afterRank === null) {
-      result.textContent =
-        "تم حفظ العينتين، لكن أسماء الفئات لا تسمح بترتيبها تلقائياً. قارني التصنيفين الظاهرين أعلاه.";
-      return;
-    }
-
-    if (afterRank < beforeRank) {
-      result.textContent =
-        "تحسن التصنيف البصري بعد التنقية ✓";
-    } else if (afterRank === beforeRank) {
-      result.textContent =
-        "لم يتغير مستوى التصنيف البصري.";
-    } else {
-      result.textContent =
-        "التصنيف البصري بعد التنقية أعلى من التصنيف السابق.";
+    } finally {
+      busy = false;
     }
   }
 
-  function resetSamples() {
-    beforeSample = null;
-    afterSample = null;
+  if (running) {
+    animationId = requestAnimationFrame(loop);
+  }
+}
+
+function displayPredictions() {
+
+  predictionsBox.innerHTML = "";
+
+  latestPredictions.forEach(item => {
+
+    const percentage =
+      (item.probability * 100).toFixed(1);
+
+    const result = document.createElement("div");
+    result.className = "result";
+
+    const title = document.createElement("div");
+    title.className = "result-title";
+
+    const name = document.createElement("span");
+    name.textContent = item.className;
+
+    const value = document.createElement("span");
+    value.textContent = percentage + "%";
+
+    title.appendChild(name);
+    title.appendChild(value);
+
+    const bar = document.createElement("div");
+    bar.className = "bar";
+
+    const fill = document.createElement("div");
+    fill.className = "fill";
+    fill.style.width = percentage + "%";
+
+    bar.appendChild(fill);
+    result.appendChild(title);
+    result.appendChild(bar);
+
+    predictionsBox.appendChild(result);
+  });
+}
+
+function stopCamera() {
+
+  running = false;
+
+  if (animationId !== null) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+
+  video.srcObject = null;
+
+  document.getElementById("startBtn").disabled = false;
+  document.getElementById("stopBtn").disabled = true;
+
+  statusText.textContent = "تم إيقاف الكاميرا.";
+}
+
+function saveSample(type) {
+
+  if (!latestPredictions.length) {
+    alert("شغّلي الكاميرا وانتظري ظهور نتيجة التحليل أولاً.");
+    return;
+  }
+
+  const top = latestPredictions[0];
+
+  const sample = {
+    className: top.className,
+    probability: top.probability
+  };
+
+  if (type === "before") {
+
+    beforeSample = sample;
 
     document.getElementById("beforeResult").textContent =
-      "لم يتم حفظ عينة بعد.";
+      sample.className + " — ثقة النموذج: " +
+      (sample.probability * 100).toFixed(1) + "%";
+
+  } else {
+
+    afterSample = sample;
 
     document.getElementById("afterResult").textContent =
-      "لم يتم حفظ عينة بعد.";
-
-    document.getElementById("comparison").textContent =
-      "بانتظار حفظ العينتين للمقارنة.";
+      sample.className + " — ثقة النموذج: " +
+      (sample.probability * 100).toFixed(1) + "%";
   }
+
+  compareSamples();
+}
+
+function getRank(className) {
+
+  const name = className.toLowerCase().trim();
+
+  if (
+    name.includes("منخفض") ||
+    name.includes("قليل") ||
+    name.includes("low")
+  ) return 1;
+
+  if (
+    name.includes("متوسط") ||
+    name.includes("medium") ||
+    name.includes("moderate")
+  ) return 2;
+
+  if (
+    name.includes("مرتفع") ||
+    name.includes("عالي") ||
+    name.includes("high")
+  ) return 3;
+
+  return null;
+}
+
+function compareSamples() {
+
+  if (!beforeSample || !afterSample) {
+    document.getElementById("comparison").textContent =
+      "تم حفظ عينة واحدة. احفظي العينة الأخرى لإتمام المقارنة.";
+    return;
+  }
+
+  const beforeRank = getRank(beforeSample.className);
+  const afterRank = getRank(afterSample.className);
+
+  const result = document.getElementById("comparison");
+
+  if (beforeRank === null || afterRank === null) {
+    result.textContent =
+      "تعذرت مقارنة ترتيب الفئات تلقائياً. قارني التصنيفين أعلاه.";
+    return;
+  }
+
+  if (afterRank < beforeRank) {
+    result.textContent =
+      "تحسن التصنيف البصري بعد التنقية ✓";
+  } else if (afterRank === beforeRank) {
+    result.textContent =
+      "لم يتغير مستوى التصنيف البصري.";
+  } else {
+    result.textContent =
+      "التصنيف البصري بعد التنقية أعلى من التصنيف السابق.";
+  }
+}
+
+function resetSamples() {
+
+  beforeSample = null;
+  afterSample = null;
+
+  document.getElementById("beforeResult").textContent =
+    "لم يتم حفظ عينة بعد.";
+
+  document.getElementById("afterResult").textContent =
+    "لم يتم حفظ عينة بعد.";
+
+  document.getElementById("comparison").textContent =
+    "بانتظار حفظ العينتين للمقارنة.";
+}
+
 </script>
 
 </body>
