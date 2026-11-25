@@ -1,49 +1,480 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>قطرة ذكية | Smart Drop</title>
 
-async function predict() {
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
-    const prediction = await model.predict(webcam.canvas);
+  <style>
+    * { box-sizing: border-box; }
 
-    let bestIndex = 0;
-
-    for (let i = 0; i < maxPredictions; i++) {
-
-        if (prediction[i].probability >
-            prediction[bestIndex].probability) {
-            bestIndex = i;
-        }
-
-        const percentage =
-            (prediction[i].probability * 100).toFixed(1);
-
-        const item = labelContainer.children[i];
-
-        item.querySelector(".class-name").textContent =
-            prediction[i].className;
-
-        item.querySelector(".percentage").textContent =
-            percentage + "%";
-
-        item.querySelector(".fill").style.width =
-            percentage + "%";
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f1f8f7;
+      color: #173b43;
+      text-align: center;
     }
 
-    const best = prediction[bestIndex];
-
-    const confidence = best.probability * 100;
-
-    const result = document.getElementById("main-result");
-
-    result.textContent =
-        best.className + " - " + confidence.toFixed(1) + "%";
-
-    // تغيير لون النتيجة حسب الفئة
-    if (best.className === "منخفض العكورة") {
-        result.style.color = "#16A34A";
-
-    } else if (best.className === "متوسط العكورة") {
-        result.style.color = "#D69E16";
-
-    } else if (best.className === "مرتفع العكورة") {
-        result.style.color = "#DC2626";
+    header {
+      background: linear-gradient(135deg, #075b63, #159b91);
+      color: white;
+      padding: 28px 15px;
     }
-}
+
+    header h1 { margin: 0 0 8px; font-size: 32px; }
+    header p { margin: 0; font-size: 16px; }
+
+    main {
+      width: 92%;
+      max-width: 850px;
+      margin: 25px auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 20px;
+      margin-bottom: 18px;
+      box-shadow: 0 4px 15px #173b4312;
+    }
+
+    h2 { color: #087c7c; margin-top: 0; }
+
+    #camera {
+      width: 100%;
+      max-width: 360px;
+      margin: 12px auto;
+      overflow: hidden;
+      border-radius: 14px;
+      background: #e7eeee;
+      min-height: 40px;
+    }
+
+    #camera canvas {
+      width: 100% !important;
+      height: auto !important;
+      display: block;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 13px 19px;
+      margin: 6px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      color: white;
+      background: #087f83;
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    .stop { background: #697d80; }
+    .before { background: #e18b37; }
+    .after { background: #168c68; }
+    .reset { background: #b84b4b; }
+
+    #status {
+      color: #60777a;
+      font-size: 14px;
+      margin: 12px;
+      line-height: 1.7;
+    }
+
+    .result {
+      text-align: right;
+      margin: 15px 0;
+    }
+
+    .result-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+
+    .bar {
+      height: 14px;
+      background: #e4eeee;
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #21aaa0, #087c7c);
+      border-radius: 20px;
+      transition: width .3s;
+    }
+
+    .sample {
+      background: #f5faf9;
+      padding: 15px;
+      border-radius: 12px;
+      margin: 10px 0;
+      text-align: right;
+      line-height: 1.9;
+    }
+
+    .comparison {
+      font-size: 19px;
+      font-weight: bold;
+      color: #087c7c;
+      margin: 15px 0;
+    }
+
+    .note {
+      font-size: 13px;
+      color: #687c80;
+      line-height: 1.8;
+    }
+
+    footer {
+      padding: 20px;
+      color: #668084;
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>💧 قطرة ذكية</h1>
+  <p>نحو مياه أنقى باستخدام الذكاء الاصطناعي</p>
+</header>
+
+<main>
+
+  <section class="card">
+    <h2>🔬 فحص عينة المياه</h2>
+    <p>وجّهي الكاميرا نحو عينة الماء للحصول على التصنيف البصري.</p>
+
+    <div id="camera"></div>
+
+    <div>
+      <button id="startBtn" onclick="startCamera()">تشغيل الكاميرا</button>
+      <button id="stopBtn" class="stop" onclick="stopCamera()" disabled>إيقاف الكاميرا</button>
+    </div>
+
+    <p id="status">يرجى تشغيل الكاميرا لبدء الفحص.</p>
+  </section>
+
+  <section class="card">
+    <h2>📊 نتائج تحليل الذكاء الاصطناعي</h2>
+    <div id="predictions">
+      ستظهر نتائج التصنيف هنا بعد تشغيل الكاميرا.
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>🧪 مقارنة العينات</h2>
+    <p>احفظي نتيجة العينة قبل التنقية، ثم أعيدي الفحص بعد التنقية.</p>
+
+    <button class="before" onclick="saveSample('before')">
+      حفظ عينة قبل التنقية
+    </button>
+
+    <button class="after" onclick="saveSample('after')">
+      حفظ عينة بعد التنقية
+    </button>
+
+    <div class="sample">
+      <strong>العينة قبل التنقية:</strong>
+      <div id="beforeResult">لم يتم حفظ عينة بعد.</div>
+    </div>
+
+    <div class="sample">
+      <strong>العينة بعد التنقية:</strong>
+      <div id="afterResult">لم يتم حفظ عينة بعد.</div>
+    </div>
+
+    <div class="comparison" id="comparison">
+      بانتظار حفظ العينتين للمقارنة.
+    </div>
+
+    <button class="reset" onclick="resetSamples()">إعادة ضبط المقارنة</button>
+  </section>
+
+  <section class="card">
+    <h2>💡 كيف تعمل قطرة ذكية؟</h2>
+    <p class="note">
+      تستخدم المنظومة نموذجاً مدرّباً بالذكاء الاصطناعي لتحليل الصورة
+      وتصنيف مظهر عينة الماء ضمن الفئات التي تم تدريب النموذج عليها.
+      تتم مقارنة نتائج العينة قبل التنقية وبعدها لمعرفة التغير في
+      التصنيف البصري.
+    </p>
+    <p class="note">
+      تنبيه علمي: هذه المنظومة تقدم تصنيفاً بصرياً فقط، ولا تقيس العكورة
+      بوحدة NTU، ولا تقيس المواد الصلبة الذائبة TDS، ولا تثبت أن الماء
+      صالح للشرب أو خالٍ من الملوثات الكيميائية أو الميكروبية.
+    </p>
+  </section>
+
+</main>
+
+<footer>
+  مشروع قطرة ذكية | Smart Drop
+  <br>
+  توظيف الذكاء الاصطناعي في مراقبة جودة المياه
+</footer>
+
+<script>
+  const URL = "./my_model/";
+
+  let model;
+  let webcam;
+  let running = false;
+  let animationId = null;
+  let latestPredictions = [];
+  let beforeSample = null;
+  let afterSample = null;
+
+  const camera = document.getElementById("camera");
+  const statusText = document.getElementById("status");
+  const predictionsBox = document.getElementById("predictions");
+
+  async function startCamera() {
+    if (running) return;
+
+    try {
+      statusText.textContent = "جارٍ تحميل نموذج الذكاء الاصطناعي...";
+
+      if (!model) {
+        model = await tmImage.load(
+          URL + "model.json",
+          URL + "metadata.json"
+        );
+      }
+
+      webcam = new tmImage.Webcam(320, 320, true);
+
+      statusText.textContent = "يرجى السماح باستخدام الكاميرا.";
+
+      await webcam.setup();
+      await webcam.play();
+
+      camera.innerHTML = "";
+      camera.appendChild(webcam.canvas);
+
+      running = true;
+
+      document.getElementById("startBtn").disabled = true;
+      document.getElementById("stopBtn").disabled = false;
+
+      statusText.textContent = "الكاميرا تعمل الآن. وجّهيها نحو عينة الماء.";
+
+      loop();
+
+    } catch (error) {
+      console.error(error);
+      statusText.textContent =
+        "تعذر تشغيل الكاميرا أو تحميل النموذج. تأكدي من السماح بالكاميرا ومن وجود ملفات النموذج داخل مجلد my_model.";
+    }
+  }
+
+  async function loop() {
+    if (!running) return;
+
+    webcam.update();
+    await predict();
+
+    if (running) {
+      animationId = requestAnimationFrame(loop);
+    }
+  }
+
+  async function predict() {
+    if (!model || !webcam) return;
+
+    try {
+      const predictions = await model.predict(webcam.canvas);
+
+      latestPredictions = predictions.map(p => ({
+        className: p.className,
+        probability: p.probability
+      }));
+
+      latestPredictions.sort(
+        (a, b) => b.probability - a.probability
+      );
+
+      displayPredictions();
+
+    } catch (error) {
+      console.error(error);
+      statusText.textContent = "حدث خطأ أثناء تحليل الصورة.";
+    }
+  }
+
+  function displayPredictions() {
+    if (!latestPredictions.length) return;
+
+    predictionsBox.innerHTML = "";
+
+    latestPredictions.forEach(item => {
+      const percentage = (item.probability * 100).toFixed(1);
+
+      const result = document.createElement("div");
+      result.className = "result";
+
+      const title = document.createElement("div");
+      title.className = "result-title";
+
+      const name = document.createElement("span");
+      name.textContent = item.className;
+
+      const value = document.createElement("span");
+      value.textContent = percentage + "%";
+
+      title.appendChild(name);
+      title.appendChild(value);
+
+      const bar = document.createElement("div");
+      bar.className = "bar";
+
+      const fill = document.createElement("div");
+      fill.className = "fill";
+      fill.style.width = percentage + "%";
+
+      bar.appendChild(fill);
+      result.appendChild(title);
+      result.appendChild(bar);
+
+      predictionsBox.appendChild(result);
+    });
+  }
+
+  function stopCamera() {
+    running = false;
+
+    if (animationId !== null) {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+
+    if (webcam) {
+      webcam.stop();
+      webcam = null;
+    }
+
+    camera.innerHTML = "";
+
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("stopBtn").disabled = true;
+
+    statusText.textContent = "تم إيقاف الكاميرا.";
+  }
+
+  function saveSample(type) {
+    if (!latestPredictions.length) {
+      alert("يرجى تشغيل الكاميرا وانتظار ظهور نتيجة التحليل أولاً.");
+      return;
+    }
+
+    const top = latestPredictions[0];
+
+    const sample = {
+      className: top.className,
+      probability: top.probability
+    };
+
+    if (type === "before") {
+      beforeSample = sample;
+
+      document.getElementById("beforeResult").textContent =
+        sample.className + " — ثقة النموذج: " +
+        (sample.probability * 100).toFixed(1) + "%";
+
+    } else {
+      afterSample = sample;
+
+      document.getElementById("afterResult").textContent =
+        sample.className + " — ثقة النموذج: " +
+        (sample.probability * 100).toFixed(1) + "%";
+    }
+
+    compareSamples();
+  }
+
+  function getRank(className) {
+    const name = className.toLowerCase().trim();
+
+    if (
+      name.includes("منخفض") ||
+      name.includes("قليل") ||
+      name.includes("low")
+    ) return 1;
+
+    if (
+      name.includes("متوسط") ||
+      name.includes("medium") ||
+      name.includes("moderate")
+    ) return 2;
+
+    if (
+      name.includes("مرتفع") ||
+      name.includes("عالي") ||
+      name.includes("high")
+    ) return 3;
+
+    return null;
+  }
+
+  function compareSamples() {
+    if (!beforeSample || !afterSample) {
+      document.getElementById("comparison").textContent =
+        "تم حفظ عينة واحدة. احفظي العينة الأخرى لإتمام المقارنة.";
+      return;
+    }
+
+    const beforeRank = getRank(beforeSample.className);
+    const afterRank = getRank(afterSample.className);
+
+    const result = document.getElementById("comparison");
+
+    if (beforeRank === null || afterRank === null) {
+      result.textContent =
+        "تم حفظ العينتين، لكن أسماء الفئات لا تسمح بترتيبها تلقائياً. قارني التصنيفين الظاهرين أعلاه.";
+      return;
+    }
+
+    if (afterRank < beforeRank) {
+      result.textContent =
+        "تحسن التصنيف البصري بعد التنقية ✓";
+    } else if (afterRank === beforeRank) {
+      result.textContent =
+        "لم يتغير مستوى التصنيف البصري.";
+    } else {
+      result.textContent =
+        "التصنيف البصري بعد التنقية أعلى من التصنيف السابق.";
+    }
+  }
+
+  function resetSamples() {
+    beforeSample = null;
+    afterSample = null;
+
+    document.getElementById("beforeResult").textContent =
+      "لم يتم حفظ عينة بعد.";
+
+    document.getElementById("afterResult").textContent =
+      "لم يتم حفظ عينة بعد.";
+
+    document.getElementById("comparison").textContent =
+      "بانتظار حفظ العينتين للمقارنة.";
+  }
+</script>
+
+</body>
+</html>
